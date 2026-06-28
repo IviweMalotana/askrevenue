@@ -1,0 +1,31 @@
+# Local Postgres for AskRevenue.
+#
+# Brings up a single Postgres instance and provisions a least-privilege read-only
+# role (askrevenue_ro) used to execute user-generated SQL. The main `askrevenue`
+# role owns the schema and is used for migrations + seeding.
+#
+#   docker compose up -d      # start Postgres
+#   make seed                 # migrate + seed demo data
+#
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: askrevenue-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: askrevenue
+      POSTGRES_PASSWORD: askrevenue
+      POSTGRES_DB: askrevenue
+    ports:
+      - "5432:5432"
+    volumes:
+      - askrevenue_pgdata:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U askrevenue -d askrevenue"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  askrevenue_pgdata:

@@ -1,0 +1,60 @@
+"""Application configuration, loaded from environment variables.
+
+Two database URLs are used intentionally:
+
+* ``DATABASE_URL``           — full-privilege connection used for migrations and seeding.
+* ``READONLY_DATABASE_URL``  — least-privilege connection used to execute generated SQL.
+
+If the read-only URL is not provided we fall back to the main URL so the app still
+runs locally, but in any real deployment they MUST differ (see docker-compose.yml,
+which provisions a dedicated ``askrevenue_ro`` role with SELECT-only grants).
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # --- Database ---------------------------------------------------------
+    database_url: str = (
+        "postgresql+psycopg://askrevenue:askrevenue@localhost:5432/askrevenue"
+    )
+    readonly_database_url: str | None = None
+
+    # --- Anthropic / LLM --------------------------------------------------
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-6"
+
+    # --- Query safety -----------------------------------------------------
+    query_row_limit: int = 1000
+    query_timeout_ms: int = 5000
+
+    # --- App --------------------------------------------------------------
+    cors_origins: str = "http://localhost:3000"
+    environment: str = "development"
+
+    @property
+    def effective_readonly_url(self) -> str:
+        return self.readonly_database_url or self.database_url
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def llm_enabled(self) -> bool:
+        return bool(self.anthropic_api_key)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
