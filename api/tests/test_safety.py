@@ -57,6 +57,22 @@ def test_unsafe_sql_rejected(sql, needle):
         assert needle.lower() in str(exc.value).lower()
 
 
+def test_generate_series_table_function_allowed():
+    sql = (
+        "SELECT to_char(d.month, 'YYYY-MM') AS month, COUNT(*) AS n "
+        "FROM generate_series(date_trunc('month', CURRENT_DATE) - INTERVAL '11 months', "
+        "date_trunc('month', CURRENT_DATE), INTERVAL '1 month') AS d(month) "
+        "JOIN fact_subscription s ON s.start_date <= d.month GROUP BY d.month"
+    )
+    validate_sql(sql)
+
+
+def test_dangerous_table_function_rejected():
+    with pytest.raises(SafetyError) as exc:
+        validate_sql("SELECT * FROM pg_read_file('/etc/passwd')")
+    assert "not allowed" in str(exc.value).lower()
+
+
 def test_cte_reference_not_treated_as_table():
     sql = (
         "WITH active AS (SELECT * FROM fact_subscription WHERE status = 'active') "

@@ -44,6 +44,11 @@ _ALLOWED_ROOTS: tuple[type, ...] = (
     exp.Subquery,
 )
 
+# Table-valued functions that are safe to use in a FROM clause. These are purely
+# computational (they cannot read base tables), but we still allow-list by name so
+# things like pg_read_file()/dblink() in a FROM are rejected outright.
+_SAFE_TABLE_FUNCTIONS = frozenset({"GENERATE_SERIES", "UNNEST"})
+
 
 class SafetyError(ValueError):
     """Raised when SQL fails a safety invariant. The message is user-facing."""
@@ -100,6 +105,14 @@ def _check_tables(root: exp.Expression) -> None:
     }
 
     for table in root.find_all(exp.Table):
+        # Table-valued function in FROM (e.g. generate_series(...) AS d(month)).
+        # These appear as a Table whose `this` is a function, with an empty name.
+        if isinstance(table.this, exp.Func):
+            fn = table.this.sql(dialect=DIALECT).split("(", 1)[0].strip().upper()
+            if fn in _SAFE_TABLE_FUNCTIONS:
+                continue
+            raise SafetyError(f"Function '{fn}' is not allowed in a FROM clause.")
+
         name = (table.name or "").lower()
         schema = (table.db or "").lower()
 

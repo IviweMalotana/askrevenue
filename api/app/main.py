@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import ask as ask_router
 from app.routers import query as query_router
+from app.routers import saved as saved_router
+from app.schema_def import schema_as_dict
 
 settings = get_settings()
 
@@ -28,6 +30,7 @@ app.add_middleware(
 
 app.include_router(query_router.router)
 app.include_router(ask_router.router)
+app.include_router(saved_router.router)
 
 
 @app.get("/health", tags=["meta"])
@@ -38,3 +41,9 @@ def health() -> dict:
         "environment": settings.environment,
         "llm_enabled": settings.llm_enabled,
     }
+
+
+@app.get("/api/schema", tags=["meta"])
+def get_schema() -> list[dict]:
+    """The analytics schema the AI is allowed to query (for the schema explorer)."""
+    return schema_as_dict()
