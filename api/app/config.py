@@ -14,7 +14,26 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _normalize_db_url(url: str | None) -> str | None:
+    """Coerce a provider-supplied URL to the psycopg driver.
+
+    Managed Postgres (Railway, Heroku, etc.) hand out `postgres://` or
+    `postgresql://` URLs; SQLAlchemy needs the explicit `postgresql+psycopg://`
+    driver. This makes those URLs work without manual editing.
+    """
+    if not url:
+        return url
+    if url.startswith("postgresql+"):
+        return url
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://"):]
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://"):]
+    return url
 
 
 class Settings(BaseSettings):
@@ -29,6 +48,11 @@ class Settings(BaseSettings):
         "postgresql+psycopg://askrevenue:askrevenue@localhost:5432/askrevenue"
     )
     readonly_database_url: str | None = None
+
+    @field_validator("database_url", "readonly_database_url")
+    @classmethod
+    def _coerce_driver(cls, v: str | None) -> str | None:
+        return _normalize_db_url(v)
 
     # --- Anthropic / LLM --------------------------------------------------
     anthropic_api_key: str | None = None
