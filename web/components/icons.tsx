@@ -97,3 +97,44 @@ export const LockIcon = (p: IconProps) => (
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </svg>
 );
+
+export const BrowserIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M3 9h18M7 6.5h.01M10 6.5h.01" />
+  </svg>
+);
+
+export const ServerIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="7" rx="2" />
+    <rect x="3" y="13" width="18" height="7" rx="2" />
+    <path d="M7 7.5h.01M7 16.5h.01" />
+  </svg>
+);
+
+export const DatabaseIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <ellipse cx="12" cy="5" rx="8" ry="3" />
+    <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+  </svg>
+);
+
+export const ShieldIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <path d="M12 3 5 6v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
+export const CodeIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 6l-4 12" />
+  </svg>
+);
+
+export const GithubIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" />
+  </svg>
+);
