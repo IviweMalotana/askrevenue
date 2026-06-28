@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routers import ask as ask_router
 from app.routers import query as query_router
 
 settings = get_settings()
@@ -26,6 +27,7 @@ app.add_middleware(
 
 
 app.include_router(query_router.router)
+app.include_router(ask_router.router)
 
 
 @app.get("/health", tags=["meta"])

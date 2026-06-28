@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # --- Anthropic / LLM --------------------------------------------------
     anthropic_api_key: str | None = None
-    anthropic_model: str = "claude-sonnet-4-6"
+    anthropic_model: str = "claude-opus-4-8"
 
     # --- Query safety -----------------------------------------------------
     query_row_limit: int = 1000
