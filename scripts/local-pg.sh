@@ -14,8 +14,11 @@ PGPORT=${PGPORT:-5432}
 # for the server processes (initdb/pg_ctl); psql connects over TCP and is fine as-is.
 if [ "$(id -u)" = "0" ]; then
   RUN="su postgres -c"
-  install -d -o postgres -g postgres "$(dirname "$PGDATA")" 2>/dev/null || true
-  install -d -o postgres -g postgres "$PGDATA"
+  # Only create-and-chown the data dir on first init; afterwards leave it alone
+  # so we don't reset perms (postgres rejects anything other than 0700/0750).
+  if [ ! -d "$PGDATA" ]; then
+    install -d -m 700 -o postgres -g postgres "$PGDATA"
+  fi
 else
   RUN="bash -c"
 fi
@@ -27,7 +30,17 @@ start() {
     echo "listen_addresses = 'localhost'" >> "$PGDATA/postgresql.conf"
     echo "port = $PGPORT" >> "$PGDATA/postgresql.conf"
   fi
-  $RUN "'$PGBIN/pg_ctl' -D '$PGDATA' -l '$PGDATA/server.log' -w start"
+  # Clear any stale pid lock from an unclean prior shutdown, then start
+  # detached via setsid so the server is parented to init and survives the
+  # shell that launched it (essential in container/sandbox environments).
+  rm -f "$PGDATA/postmaster.pid"
+  chmod 700 "$PGDATA"
+  $RUN "setsid '$PGBIN/postgres' -D '$PGDATA' >>'$PGDATA/server.log' 2>&1 < /dev/null &"
+  # Wait for the server to accept connections.
+  for _ in $(seq 1 30); do
+    if "$PGBIN/pg_isready" -h localhost -p "$PGPORT" >/dev/null 2>&1; then break; fi
+    sleep 0.5
+  done
   bootstrap
 }
 
@@ -49,7 +62,9 @@ SQL
 }
 
 stop() {
-  $RUN "'$PGBIN/pg_ctl' -D '$PGDATA' -w stop" || true
+  if [ -f "$PGDATA/postmaster.pid" ]; then
+    $RUN "'$PGBIN/pg_ctl' -D '$PGDATA' -m fast -w stop" || true
+  fi
 }
 
 case "${1:-start}" in
