@@ -29,7 +29,7 @@ def test_fallback_matches_example(monkeypatch):
     # Force fallback mode regardless of environment.
     import app.answer as ans
 
-    monkeypatch.setattr(ans.settings, "kimi_api_key", None, raising=False)
+    monkeypatch.setattr(ans.settings, "anthropic_api_key", None, raising=False)
 
     answer = answer_question("which plan churns most?")
     assert answer["source"] == "fallback"
@@ -42,7 +42,7 @@ def test_fallback_matches_example(monkeypatch):
 def test_fallback_miss_raises(monkeypatch):
     import app.answer as ans
 
-    monkeypatch.setattr(ans.settings, "kimi_api_key", None, raising=False)
+    monkeypatch.setattr(ans.settings, "anthropic_api_key", None, raising=False)
 
     with pytest.raises(AnswerError):
         answer_question("what is the airspeed velocity of an unladen swallow?")

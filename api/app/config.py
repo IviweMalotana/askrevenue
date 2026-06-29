@@ -13,9 +13,17 @@ which provisions a dedicated ``askrevenue_ro`` role with SELECT-only grants).
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Anchor the .env search at file locations so it works regardless of cwd.
+# Order matters: later files override earlier ones, so api/.env (if present)
+# wins over the project-root .env.
+_API_DIR = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = _API_DIR.parent
+_ENV_FILES = (_PROJECT_ROOT / ".env", _API_DIR / ".env")
 
 
 def _normalize_db_url(url: str | None) -> str | None:
@@ -38,7 +46,7 @@ def _normalize_db_url(url: str | None) -> str | None:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -54,12 +62,9 @@ class Settings(BaseSettings):
     def _coerce_driver(cls, v: str | None) -> str | None:
         return _normalize_db_url(v)
 
-    # --- Kimi (Moonshot AI) / LLM ----------------------------------------
-    # Moonshot exposes an OpenAI-compatible API; we use the official `openai`
-    # SDK with `base_url` set to Moonshot's endpoint.
-    kimi_api_key: str | None = None
-    kimi_model: str = "kimi-k2-0905-preview"
-    kimi_base_url: str = "https://api.moonshot.ai/v1"
+    # --- Anthropic Claude / LLM ------------------------------------------
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-opus-4-8"
 
     # --- Query safety -----------------------------------------------------
     query_row_limit: int = 1000
@@ -79,7 +84,7 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
-        return bool(self.kimi_api_key)
+        return bool(self.anthropic_api_key)
 
 
 @lru_cache

@@ -1,10 +1,8 @@
-"""Natural-language -> SQL generation via Kimi (Moonshot AI).
+"""Natural-language -> SQL generation via the Anthropic Claude API.
 
-Moonshot exposes an OpenAI-compatible Chat Completions API, so we use the
-official `openai` SDK pointed at Moonshot's `base_url`. JSON mode guarantees
-parseable JSON; we still validate the result's shape post-hoc because
-`response_format={"type": "json_object"}` does NOT enforce a schema — the
-schema lives in the system prompt as guidance.
+Grounded in the real schema (app/schema_def.py) and constrained to emit a single
+read-only SELECT plus a chart proposal. The output is constrained with structured
+outputs so we get well-formed JSON back without brittle parsing.
 
 The summary is generated in a second pass *after* the query has run, so it can
 describe the actual numbers rather than guessing from the question alone.
@@ -14,22 +12,44 @@ from __future__ import annotations
 
 import json
 
-from openai import APIError, OpenAI
+import anthropic
 
 from app.config import get_settings
 from app.schema_def import schema_prompt
 
 settings = get_settings()
 
-_PLAN_SHAPE = """\
-Return a single JSON object with this exact shape (no extra keys):
-{
-  "sql": "<one read-only PostgreSQL SELECT statement>",
-  "chart_type": "<one of: line | bar | pie | area>",
-  "chart_config": { "x": "<column name>", "y": ["<column name>", ...] },
-  "title": "<short chart title, <= 6 words>"
+# JSON schema for the NL->SQL plan (structured outputs). All objects set
+# additionalProperties:false, as required by the API.
+_PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "sql": {
+            "type": "string",
+            "description": "A single read-only PostgreSQL SELECT statement.",
+        },
+        "chart_type": {
+            "type": "string",
+            "enum": ["line", "bar", "pie", "area"],
+        },
+        "chart_config": {
+            "type": "object",
+            "properties": {
+                "x": {"type": "string", "description": "Column for the category/x-axis."},
+                "y": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "One or more numeric measure columns.",
+                },
+            },
+            "required": ["x", "y"],
+            "additionalProperties": False,
+        },
+        "title": {"type": "string", "description": "Short chart title (<= 6 words)."},
+    },
+    "required": ["sql", "chart_type", "chart_config", "title"],
+    "additionalProperties": False,
 }
-"""
 
 _SYSTEM = f"""\
 You are a careful analytics engineer for a subscription business. Translate the
@@ -53,9 +73,6 @@ CHART
 - chart_config.x is the category/time column; chart_config.y lists numeric columns.
 - line/area for trends over time, bar for category comparisons, pie for shares.
 - Use column names exactly as they appear in your SELECT's output.
-
-OUTPUT
-{_PLAN_SHAPE}
 """
 
 
@@ -63,34 +80,14 @@ class LLMError(RuntimeError):
     """Raised when the model call fails or returns unusable output."""
 
 
-_client: OpenAI | None = None
+_client: anthropic.Anthropic | None = None
 
 
-def _get_client() -> OpenAI:
+def _get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = OpenAI(
-            api_key=settings.kimi_api_key,
-            base_url=settings.kimi_base_url,
-        )
+        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     return _client
-
-
-def _validate_plan(obj: object) -> dict:
-    """Make sure the model returned the shape we promised the rest of the app."""
-    if not isinstance(obj, dict):
-        raise LLMError("Model returned non-object JSON.")
-    for key in ("sql", "chart_type", "chart_config", "title"):
-        if key not in obj:
-            raise LLMError(f"Model JSON is missing required field '{key}'.")
-    if not isinstance(obj["sql"], str) or not obj["sql"].strip():
-        raise LLMError("Model returned empty SQL.")
-    cfg = obj["chart_config"]
-    if not isinstance(cfg, dict) or "x" not in cfg or "y" not in cfg:
-        raise LLMError("Model returned an invalid chart_config.")
-    if not isinstance(cfg["y"], list):
-        cfg["y"] = [cfg["y"]] if isinstance(cfg["y"], str) else []
-    return obj
 
 
 def generate_plan(question: str, error_feedback: str | None = None) -> dict:
@@ -103,31 +100,28 @@ def generate_plan(question: str, error_feedback: str | None = None) -> dict:
     if error_feedback:
         user += (
             f"\n\nYour previous SQL failed with this error:\n{error_feedback}\n"
-            "Return corrected JSON with valid SQL."
+            "Return corrected SQL that satisfies the rules."
         )
 
     try:
-        resp = _get_client().chat.completions.create(
-            model=settings.kimi_model,
-            messages=[
-                {"role": "system", "content": _SYSTEM},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.2,
+        resp = _get_client().messages.create(
+            model=settings.anthropic_model,
             max_tokens=1500,
-            response_format={"type": "json_object"},
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": user}],
+            output_config={"format": {"type": "json_schema", "schema": _PLAN_SCHEMA}},
         )
-    except APIError as e:
-        raise LLMError(f"Kimi API error: {e}") from e
+    except anthropic.APIError as e:
+        raise LLMError(f"Claude API error: {e}") from e
 
-    text = (resp.choices[0].message.content or "").strip()
+    text = next((b.text for b in resp.content if b.type == "text"), None)
     if not text:
         raise LLMError("Model returned no content.")
     try:
         plan = json.loads(text)
     except json.JSONDecodeError as e:
         raise LLMError("Model returned malformed JSON.") from e
-    return _validate_plan(plan)
+    return plan
 
 
 def summarize(question: str, columns: list[str], rows: list[dict], chart_type: str) -> str:
@@ -142,25 +136,20 @@ def summarize(question: str, columns: list[str], rows: list[dict], chart_type: s
         "row_count": len(rows),
     }
     try:
-        resp = _get_client().chat.completions.create(
-            model=settings.kimi_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a concise analyst. Given a question and the query result, "
-                        "write ONE short paragraph (2-4 sentences) describing what the data "
-                        "shows: the headline number or trend, and one notable detail. Use "
-                        "plain business English. Quote specific figures. No preamble, no "
-                        "bullet points, no markdown."
-                    ),
-                },
-                {"role": "user", "content": json.dumps(payload, default=str)},
-            ],
-            temperature=0.4,
+        resp = _get_client().messages.create(
+            model=settings.anthropic_model,
             max_tokens=400,
+            system=(
+                "You are a concise analyst. Given a question and the query result, "
+                "write ONE short paragraph (2-4 sentences) describing what the data "
+                "shows: the headline number or trend, and one notable detail. Use "
+                "plain business English. Quote specific figures. No preamble, no "
+                "bullet points, no markdown."
+            ),
+            messages=[{"role": "user", "content": json.dumps(payload, default=str)}],
         )
-    except APIError as e:
-        raise LLMError(f"Kimi API error: {e}") from e
+    except anthropic.APIError as e:
+        raise LLMError(f"Claude API error: {e}") from e
 
-    return (resp.choices[0].message.content or "").strip()
+    text = next((b.text for b in resp.content if b.type == "text"), "")
+    return text.strip()

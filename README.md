@@ -24,7 +24,7 @@ SELECT-only database role.
 - **Safety first** — generated SQL is validated to be a single `SELECT`, executed on a
   read-only role, capped, and time-limited. No writes, ever.
 - **Demo mode** — seeded data and a curated fallback library mean the app is fully
-  clickable with zero setup, even without a Kimi API key.
+  clickable with zero setup, even without an Anthropic API key.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ SELECT-only database role.
 ┌──────────────────────┐        ┌─────────────────────────────┐        ┌──────────────┐
 │  Next.js 15 (web)    │  HTTP  │  FastAPI (api)              │  SQL   │  Postgres    │
 │  App Router + TS     │ ─────► │                             │ ─────► │              │
-│  Tailwind + Recharts │        │  • NL→SQL via Kimi          │  R/W   │ star schema  │
+│  Tailwind + Recharts │        │  • NL→SQL via Claude        │  R/W   │ star schema  │
 │                      │ ◄───── │  • SQL safety validator     │ ◄───── │ + app tables │
 │  Ask / Dashboard /   │  JSON  │  • read-only query executor │        │              │
 │  Schema explorer     │        │  • saved questions + dash   │  RO    │ askrevenue_ro│
@@ -42,7 +42,7 @@ SELECT-only database role.
 - **Frontend:** Next.js 15 (App Router) + TypeScript + Tailwind + Recharts → Vercel.
 - **Backend:** FastAPI (Python 3.12, managed with `uv`) → Railway.
 - **Database:** Postgres (SQLAlchemy + Alembic migrations) → Railway.
-- **Model layer:** Kimi (Moonshot AI) via the OpenAI-compatible SDK (`KIMI_API_KEY`).
+- **Model layer:** Anthropic Claude via the official SDK (`ANTHROPIC_API_KEY`).
 
 ### Data model (star-ish schema)
 
@@ -87,8 +87,8 @@ askrevenue/
 cp .env.example .env        # defaults work out of the box for local dev
 ```
 
-`KIMI_API_KEY` is optional — leave it blank to run in fallback mode (the app
-answers from a curated library of example questions instead of calling Kimi).
+`ANTHROPIC_API_KEY` is optional — leave it blank to run in fallback mode (the app
+answers from a curated library of example questions instead of calling Claude).
 
 ### 2. Start the database and seed it
 
@@ -133,7 +133,7 @@ npm run dev   # http://localhost:3000
 ```
 
 Open **http://localhost:3000** — the landing page links into the live demo. With
-no `KIMI_API_KEY` set, the Ask view answers from the curated example library
+no `ANTHROPIC_API_KEY` set, the Ask view answers from the curated example library
 (the example chips always work); set a key to enable live NL→SQL for any question.
 
 ### Useful Make targets
@@ -153,9 +153,8 @@ make db-reset    # stop Postgres and DELETE all data
 | ------------------------- | ---------- | ------------------------------------------------------ |
 | `DATABASE_URL`            | api        | Full-privilege connection (migrations, seeding, app)   |
 | `READONLY_DATABASE_URL`   | api        | SELECT-only connection for executing generated SQL     |
-| `KIMI_API_KEY`            | api        | Moonshot/Kimi API key. Blank → curated fallback mode   |
-| `KIMI_MODEL`              | api        | Kimi model id (default `kimi-k2-0905-preview`)         |
-| `KIMI_BASE_URL`           | api        | OpenAI-compatible endpoint (default `https://api.moonshot.ai/v1`) |
+| `ANTHROPIC_API_KEY`       | api        | Claude API key. Blank → curated fallback mode          |
+| `ANTHROPIC_MODEL`         | api        | Claude model id (default `claude-opus-4-8`)            |
 | `QUERY_ROW_LIMIT`         | api        | Max rows returned by a generated query (default 1000)  |
 | `QUERY_TIMEOUT_MS`        | api        | Statement timeout for generated queries (default 5000) |
 | `CORS_ORIGINS`            | api        | Comma-separated allowed origins                        |
@@ -184,10 +183,8 @@ API rewrites them to the `postgresql+psycopg://` driver automatically.
 2. Set environment variables:
    - `DATABASE_URL` — reference the Postgres plugin's variable.
    - `READONLY_DATABASE_URL` — the read-only role URL from step 1.
-   - `KIMI_API_KEY` — your Moonshot/Kimi key (omit to run in curated fallback mode).
-   - `KIMI_MODEL` — optional, defaults to `kimi-k2-0905-preview`.
-   - `KIMI_BASE_URL` — optional, defaults to `https://api.moonshot.ai/v1`
-     (use `https://api.moonshot.cn/v1` for the China region).
+   - `ANTHROPIC_API_KEY` — your Claude key (omit to run in curated fallback mode).
+   - `ANTHROPIC_MODEL` — optional, defaults to `claude-opus-4-8`.
    - `CORS_ORIGINS` — your Vercel URL, e.g. `https://askrevenue.vercel.app`.
    - `ENVIRONMENT` — `production`.
 3. The `Procfile` runs `alembic upgrade head` on every deploy (`release`) and
