@@ -185,7 +185,7 @@ function Approach() {
     {
       n: "02",
       title: "Generate, then prove it's safe",
-      body: "Claude returns one SELECT plus a chart proposal. Every query is parsed and validated — single statement, no writes, allow-listed tables only — before it ever runs, with a one-shot repair loop if it fails.",
+      body: "Kimi returns one SELECT plus a chart proposal. Every query is parsed and validated — single statement, no writes, allow-listed tables only — before it ever runs, with a one-shot repair loop if it fails.",
     },
     {
       n: "03",
@@ -229,7 +229,7 @@ function Architecture() {
             title="API — FastAPI"
             host="Railway"
             accent
-            lines={["NL→SQL via Claude", "SQL safety validator", "Read-only executor"]}
+            lines={["NL→SQL via Kimi", "SQL safety validator", "Read-only executor"]}
           />
           <Connector />
           <ArchNode
@@ -245,7 +245,7 @@ function Architecture() {
           <div className="hidden md:block" />
           <div className="rounded-md border border-dashed border-accent/30 bg-accent-soft/50 p-3 text-center">
             <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-accent-ink">
-              <SparkIcon width={14} height={14} /> Anthropic Claude API
+              <SparkIcon width={14} height={14} /> Kimi (Moonshot AI)
             </p>
             <p className="mt-0.5 text-xs text-muted">
               schema-grounded · structured output
@@ -432,7 +432,7 @@ function CaseClose() {
               <li><span className="text-ink">Frontend</span> — Next.js 15, TypeScript, Tailwind, Recharts</li>
               <li><span className="text-ink">Backend</span> — FastAPI, Python 3.12, uv</li>
               <li><span className="text-ink">Data</span> — Postgres, SQLAlchemy, Alembic, sqlglot</li>
-              <li><span className="text-ink">AI</span> — Anthropic Claude (official SDK)</li>
+              <li><span className="text-ink">AI</span> — Kimi K2 (Moonshot, OpenAI-compatible)</li>
               <li><span className="text-ink">Deploy</span> — Vercel (web) · Railway (api + db)</li>
             </ul>
           </div>

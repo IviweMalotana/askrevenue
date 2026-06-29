@@ -54,9 +54,12 @@ class Settings(BaseSettings):
     def _coerce_driver(cls, v: str | None) -> str | None:
         return _normalize_db_url(v)
 
-    # --- Anthropic / LLM --------------------------------------------------
-    anthropic_api_key: str | None = None
-    anthropic_model: str = "claude-opus-4-8"
+    # --- Kimi (Moonshot AI) / LLM ----------------------------------------
+    # Moonshot exposes an OpenAI-compatible API; we use the official `openai`
+    # SDK with `base_url` set to Moonshot's endpoint.
+    kimi_api_key: str | None = None
+    kimi_model: str = "kimi-k2-0905-preview"
+    kimi_base_url: str = "https://api.moonshot.ai/v1"
 
     # --- Query safety -----------------------------------------------------
     query_row_limit: int = 1000
@@ -76,7 +79,7 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return bool(self.kimi_api_key)
 
 
 @lru_cache
