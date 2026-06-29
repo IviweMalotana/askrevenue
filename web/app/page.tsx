@@ -345,25 +345,52 @@ function Safety() {
 function Outcome() {
   return (
     <section>
-      <SectionHeading kicker="The outcome" title="What this delivers" />
-      <div className="mb-5 flex items-start gap-2 rounded-md border border-dashed border-warning/40 bg-amber-50/60 px-4 py-3 text-sm text-warning">
-        <span className="font-medium">Placeholders —</span>
-        <span className="text-muted">
-          the figures below are marked for me to replace with real numbers from a
-          genuine engagement or usage data. They are intentionally not invented.
-        </span>
+      <SectionHeading kicker="The outcome" title="Two layers — what's shipped, and what it delivers" />
+
+      {/* What's verifiable today: real facts about the build itself. */}
+      <div className="mb-10">
+        <p className="label mb-3">Shipped today · verifiable on the demo</p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Shipped value="100%" label="Read-only by construction" hint="No DML can execute — enforced by both the validator and the Postgres role." />
+          <Shipped value="40" label="Automated safety tests" hint="Cover the unsafe-SQL matrix, row caps, statement timeouts, and JSON serialisation." />
+          <Shipped value="5" label="Analytics tables in scope" hint="A clean star schema; system catalogs and app tables are blocked outright." />
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Shipped value="<50ms" label="Typical query latency" hint="On the seeded demo dataset, including JSON serialisation." />
+          <Shipped value="24mo" label="Simulated history" hint="Coherent MRR growth, tier-dependent churn, realistic payment-failure mix." />
+          <Shipped value="0" label="Secrets in source" hint="API keys are read from env vars; .env is gitignored." />
+        </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Metric label="Time-to-answer, before → after" hint="e.g. 3 days → 30 seconds" />
-        <Metric label="Analyst hours saved / month" hint="quantify the ad-hoc query load removed" />
-        <Metric label="Questions self-served" hint="share answered without a data ticket" />
-      </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Metric label="Adoption" hint="weekly active operators" />
-        <Metric label="Trust / accuracy" hint="% of generated SQL accepted as-is" />
-        <Metric label="Your headline metric" hint="the number you'd put on a résumé" />
+
+      {/* What needs a real engagement to fill in — explicit placeholders. */}
+      <div>
+        <p className="label mb-3">In production · awaiting real usage</p>
+        <div className="mb-5 flex items-start gap-2 rounded-md border border-dashed border-warning/40 bg-amber-50/60 px-4 py-3 text-sm text-warning">
+          <span className="font-medium">Placeholders —</span>
+          <span className="text-muted">
+            The business outcomes below are clearly marked for me to fill from a
+            real engagement or production usage. They are intentionally not invented.
+          </span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Metric label="Time-to-answer, before → after" hint="e.g. 3 days → 30 seconds" />
+          <Metric label="Analyst hours saved / month" hint="ad-hoc query load removed" />
+          <Metric label="Questions self-served" hint="share answered without a data ticket" />
+        </div>
       </div>
     </section>
+  );
+}
+
+function Shipped({ value, label, hint }: { value: string; label: string; hint: string }) {
+  return (
+    <div className="card p-5">
+      <span className="font-mono text-3xl font-semibold tracking-tight text-ink">
+        {value}
+      </span>
+      <p className="mt-2 font-medium text-ink">{label}</p>
+      <p className="mt-0.5 text-sm leading-relaxed text-muted">{hint}</p>
+    </div>
   );
 }
 
@@ -397,19 +424,16 @@ function CaseClose() {
               It sits exactly on the BA + AI overlap
             </h2>
             <p className="mt-3 text-base leading-relaxed text-muted">
-              As a former Product Owner / Business Analyst with billing and data
-              experience, the recurring bottleneck I saw was the distance between a
-              stakeholder's question and a trustworthy answer. AskRevenue is my take
-              on closing that gap responsibly — turning natural language into{" "}
-              <strong className="text-ink">safe</strong> SQL over a realistic
-              subscriptions model, and refusing to hide the query.
+              The years I've spent on the BA side of billing and analytics — across
+              DynamoDB, BigQuery, Pandas, and a lot of Recharts — taught me where
+              the friction actually is. It's rarely the data; it's the round-trip
+              between a stakeholder's question and a trustworthy answer.
             </p>
             <p className="mt-3 text-base leading-relaxed text-muted">
-              {/* Placeholder for the author's personalised note. */}
-              <span className="rounded bg-surface-2 px-1 text-muted">
-                [ Add a sentence on a specific billing/analytics project where this
-                would have paid off. ]
-              </span>
+              AskRevenue is the project where I get to apply what an AI can do to
+              that exact gap, with the guardrails an analyst would actually
+              require: <strong className="text-ink">read-only by construction</strong>,
+              schema-grounded, and never hiding the query.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
