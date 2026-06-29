@@ -64,7 +64,10 @@ class Settings(BaseSettings):
 
     # --- Anthropic Claude / LLM ------------------------------------------
     anthropic_api_key: str | None = None
-    anthropic_model: str = "claude-opus-4-8"
+    # Haiku 4.5 is the cheapest current-generation Claude model ($1/$5 per 1M
+    # tokens) and is plenty for short schema-grounded NL->SQL. Bump to
+    # claude-sonnet-4-6 ($3/$15) or claude-opus-4-8 ($5/$25) for harder prompts.
+    anthropic_model: str = "claude-haiku-4-5"
 
     # --- Query safety -----------------------------------------------------
     query_row_limit: int = 1000

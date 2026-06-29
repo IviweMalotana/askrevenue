@@ -154,7 +154,7 @@ make db-reset    # stop Postgres and DELETE all data
 | `DATABASE_URL`            | api        | Full-privilege connection (migrations, seeding, app)   |
 | `READONLY_DATABASE_URL`   | api        | SELECT-only connection for executing generated SQL     |
 | `ANTHROPIC_API_KEY`       | api        | Claude API key. Blank → curated fallback mode          |
-| `ANTHROPIC_MODEL`         | api        | Claude model id (default `claude-opus-4-8`)            |
+| `ANTHROPIC_MODEL`         | api        | Claude model id (default `claude-haiku-4-5`)            |
 | `QUERY_ROW_LIMIT`         | api        | Max rows returned by a generated query (default 1000)  |
 | `QUERY_TIMEOUT_MS`        | api        | Statement timeout for generated queries (default 5000) |
 | `CORS_ORIGINS`            | api        | Comma-separated allowed origins                        |
@@ -184,7 +184,7 @@ API rewrites them to the `postgresql+psycopg://` driver automatically.
    - `DATABASE_URL` — reference the Postgres plugin's variable.
    - `READONLY_DATABASE_URL` — the read-only role URL from step 1.
    - `ANTHROPIC_API_KEY` — your Claude key (omit to run in curated fallback mode).
-   - `ANTHROPIC_MODEL` — optional, defaults to `claude-opus-4-8`.
+   - `ANTHROPIC_MODEL` — optional, defaults to `claude-haiku-4-5` (cheapest tier; bump to `claude-sonnet-4-6` or `claude-opus-4-8` for harder prompts).
    - `CORS_ORIGINS` — your Vercel URL, e.g. `https://askrevenue.vercel.app`.
    - `ENVIRONMENT` — `production`.
 3. The `Procfile` runs `alembic upgrade head` on every deploy (`release`) and
