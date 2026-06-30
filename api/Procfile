@@ -1,0 +1,5 @@
+# Railway / Nixpacks process definitions for the API.
+# `release` runs migrations on every deploy; `web` serves the app.
+# Seeding and read-only-role provisioning are one-time steps — see the README.
+release: uv run alembic upgrade head
+web: uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

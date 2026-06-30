@@ -141,3 +141,20 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# ---------------------------------------------------------------------------
+# Python / uv (AskRevenue API)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+api/.venv/
+.uv/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Next.js (AskRevenue web)
+web/.next/
+web/out/
+web/node_modules/
